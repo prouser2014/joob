@@ -1,0 +1,341 @@
+:root{
+  --bg:#0f1115; --panel:#151925; --bar:#10131c; --text:#e8eaf2; --muted:#93a0b4;
+  --btn:#1e2332; --btn-border:#2b3147; --primary:#5b9cff; --success:#2ecc71; --danger:#e74c3c;
+  --tx:#ff7e67; --rx:#5b9cff;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius:16px; --pad:14px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,Segoe UI,Arial}
+
+.bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bar);border-bottom:1px solid #1b2135}
+.title{font-weight:700}
+main{padding:14px;max-width:900px;margin:0 auto}
+
+/* Кнопки */
+.btn{padding:10px 14px;border-radius:12px;border:1px solid var(--btn-border);background:var(--btn);color:var(--text);cursor:pointer}
+.btn.primary{background:var(--primary);border-color:#3e78c9}
+.btn.success{background:var(--success);border-color:#1f9d57}
+.btn.danger{background:var(--danger);border-color:#b0362c}
+.btn.btn-connect{width:100%; display:block; min-width:0; font-weight:700}
+
+/* Служебные */
+.hidden{display:none !important}
+
+/* Контейнер для подключения — просто отступы */
+.connect-wrap{margin:16px 0}
+
+/* PTT */
+.circle-wrap{display:flex;justify-content:center;padding:10px 0;width:100%;}
+.circle{
+  width:100%;
+  max-width:450px;
+  height:auto;
+  aspect-ratio:1 / 1;
+  border-radius:50%;
+  background:#2a7a3f;
+  border:6px solid #15251a;
+  box-shadow:inset 0 0 40px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.25);
+  transition:background .12s,transform .06s;
+}
+.circle.red{background:#a73434}.circle:active{transform:scale(.98)}.circle.disabled{filter:grayscale(.7) brightness(.7);pointer-events:none}
+
+/* VU-метры */
+.circle-area{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  margin:10px 0 18px;
+}
+.vu{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;}
+.vu-track{width:100%;max-width:450px;height:16px;background:#0e1220;border:1px solid var(--btn-border);border-radius:10px;position:relative;overflow:hidden}
+.vu-bar{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#3ecf8e,#f5d90a,#f7685b);transition:width .08s ease}
+.vu-caption{font-size:12px;color:var(--muted)}
+
+/* Формы */
+.panel-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.panel-row.tight{margin:6px 0}
+.lbl{min-width:230px;color:var(--muted)}
+.input{flex:1;min-width:180px;padding:10px 12px;border-radius:12px;border:1px solid var(--btn-border);background:#0e1220;color:#e8eaf2}
+.mono{font-family:var(--mono);font-size:13px;color:#c8d1e6}
+
+/* ======= Боковое меню (drawer) + бургер ======= */
+
+.bar-left{display:flex;align-items:center;gap:10px}
+.brand{display:flex;flex-direction:column}
+
+/* --- Бургер-кнопка --- */
+.burger{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:4px;
+  width:44px;
+  height:44px;
+  cursor:pointer;
+  border-radius:10px;
+}
+.burger:active{
+  background:var(--btn);
+  transform:scale(.95);
+}
+.burger span{
+  display:block;
+  width:18px;
+  height:2px;
+  background:var(--text);
+}
+
+/* Drawer и затемнение */
+.nav-toggle{display:none}
+.drawer{
+  position:fixed;left:0;top:0;bottom:0;width:280px;z-index:1000;
+  background:var(--panel);border-right:1px solid #1b2135;
+  transform:translateX(-100%);transition:transform .2s ease;
+  padding:12px;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.4);
+}
+.drawer-header{padding:6px 6px 10px 6px}
+.drawer-title{font-weight:800;font-size:20px}
+.drawer-nav{display:flex;flex-direction:column;gap:6px}
+.drawer-link{
+  display:block;padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--text);
+  border:1px solid transparent;background:transparent;cursor:pointer;
+}
+.drawer-link:hover{background:#0e1220;border-color:#2b3147}
+.drawer-sep{border:none;border-top:1px solid #1b2135;margin:8px 0}
+
+/* Подсветка активного пункта меню по выбранной вкладке */
+#tab-ptt:checked     ~ .drawer .drawer-link[for="tab-ptt"],
+#tab-connect:checked ~ .drawer .drawer-link[for="tab-connect"],
+#tab-audio:checked   ~ .drawer .drawer-link[for="tab-audio"],
+#tab-journal:checked ~ .drawer .drawer-link[for="tab-journal"]{
+  background:#1b2133;border-color:#2b3147;color:#fff;
+}
+
+/* Затемнение фона для меню */
+.backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:900;opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+#nav-toggle:checked ~ .drawer{transform:translateX(0)}
+#nav-toggle:checked ~ .backdrop{opacity:1;pointer-events:auto}
+
+/* ======= ВКЛАДКИ (CSS-only) ======= */
+
+.tab-panel{display:none}
+#tab-ptt:checked     ~ #app #panel-ptt{display:block}
+#tab-connect:checked ~ #app #panel-connect{display:block}
+#tab-audio:checked   ~ #app #panel-audio{display:block}
+#tab-crypto:checked  ~ #app #panel-crypto{display:block}
+#tab-journal:checked ~ #app #panel-journal{display:block}
+
+/* ======= Контроль трафика — KPI без скорости ======= */
+
+.traffic{display:flex;flex-direction:column;gap:14px}
+
+.kpi-grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media (min-width: 720px){ .kpi-grid{grid-template-columns:1fr 1fr} }
+
+.kpi-card{
+  position:relative;background:linear-gradient(180deg, #13182a, #0f1423);
+  border:1px solid #1b2135;border-radius:18px;padding:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 30px rgba(0,0,0,.25);
+  overflow:hidden;
+}
+.kpi-card::after{
+  content:""; position:absolute; left:0; top:0; right:0; height:2px;
+  background:linear-gradient(90deg, rgba(255,255,255,.08), transparent 30%, transparent 70%, rgba(255,255,255,.08));
+}
+.kpi-card.tx{--accent: var(--tx)}
+.kpi-card.rx{--accent: var(--rx)}
+
+.kpi-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.kpi-icon{
+  width:36px;height:36px;border-radius:10px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--accent) 18%, transparent);
+  color:color-mix(in srgb, var(--accent) 92%, white 10%);
+  border:1px solid color-mix(in srgb, var(--accent) 45%, #1b2135);
+  box-shadow:0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.kpi-title{font-weight:700;letter-spacing:.2px}
+
+.kpi-main{display:flex;flex-direction:column;gap:10px}
+
+/* Равные по ширине «Байты» и «Пакеты» */
+.chip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:999px;
+  border:1px solid #2b3147;background:#0e1220;color:#cfd7ea;
+}
+
+/* Панель действий снизу */
+.traffic-actions{display:flex;justify-content:flex-end}
+.traffic-actions .btn{border-color:#2b3147;background:#151b2b}
+
+/* ======= Мини-KPI на экране «Рация» (кбит/с) ======= */
+.kpi-inline{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width: 460px){ .kpi-inline{grid-template-columns:1fr} }
+.kpi-mini{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(180deg, #13182a, #0f1423);
+  border:1px solid #1b2135;border-radius:14px;padding:10px 12px;
+}
+.kpi-mini.tx{--accent: var(--tx)}
+.kpi-mini.rx{--accent: var(--rx)}
+.kpi-mini .kpi-icon{
+  width:30px;height:30px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--accent) 18%, transparent);
+  color:color-mix(in srgb, var(--accent) 92%, white 10%);
+  border:1px solid color-mix(in srgb, var(--accent) 45%, #1b2135);
+}
+.kpi-mini-main{display:flex;flex-direction:column;gap:2px}
+.mini-caption{font-size:12px;color:#aeb9d4}
+.mini-value{font-size:20px;color:#fff}
+
+/* Адаптив ширины меню */
+@media (min-width: 1024px){ .drawer{width:320px} }
+
+/* ======= ЖУРНАЛ: одно красивое поле ======= */
+#panel-journal > div{
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+  margin:12px 0;
+}
+
+/* Фиксируем ширину подписи слева */
+#panel-journal .lbl{
+  width:230px;
+  min-width:230px;
+  padding-top:6px;
+  color:var(--muted);
+}
+
+/* Красивое поле журнала */
+#panel-journal .log{
+  flex:1;
+  width:100%;
+  min-height:220px;
+  resize:vertical;
+
+  font-family:var(--mono);
+  font-size:13.5px;
+  line-height:1.45;
+  color:#e8eaf2;
+
+  background:
+    linear-gradient(180deg, #10162b 0%, #0d1224 100%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.03) 0px,
+      rgba(255,255,255,0.03) 24px,
+      transparent 24px,
+      transparent 48px
+    );
+  border:1px solid var(--btn-border);
+  border-radius:14px;
+  padding:12px 14px;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 12px 30px rgba(0,0,0,.28);
+
+  outline:none;
+  caret-color:#fff;
+}
+
+/* Плейсхолдер и выделение */
+#panel-journal .log::placeholder{ color:#aeb9d4; opacity:.6 }
+#panel-journal .log::selection{ background:rgba(91,156,255,.22) }
+
+/* Фокус */
+#panel-journal .log:focus{
+  border-color:#3e78c9;
+  box-shadow:
+    0 0 0 3px rgba(91,156,255,.2),
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 12px 30px rgba(0,0,0,.28);
+}
+
+/* Скроллбар */
+#panel-journal .log::-webkit-scrollbar{ width:10px }
+#panel-journal .log::-webkit-scrollbar-track{
+  background:#0e1220; border-radius:10px
+}
+#panel-journal .log::-webkit-scrollbar-thumb{
+  background:#2b3147; border-radius:10px; border:2px solid #0e1220
+}
+#panel-journal .log:hover::-webkit-scrollbar-thumb{ background:#3b4568 }
+
+/* (Опционально) будущие оформляющие классы для информации/статуса, если вернутся */
+.log-kv{
+  display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;
+  font-family:var(--mono);font-size:13px;
+}
+.log-kv .k{color:#aeb9d4}
+.log-kv .v{color:#e8eaf2;word-break:break-word}
+
+.statusline{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:13px;
+}
+.tag{
+  display:inline-block;padding:2px 8px;border-radius:999px;
+  border:1px solid var(--btn-border);background:#0e1220;
+}
+.tag.ok{background:rgba(46,204,113,.15);border-color:#1f9d57}
+.tag.warn{background:rgba(245,217,10,.12);border-color:#b8a409}
+.tag.err{background:rgba(231,76,60,.14);border-color:#b0362c}
+
+/* --- СТИЛИ ДЛЯ ПЕРЕКЛЮЧАТЕЛЕЙ --- */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--btn);
+  border: 1px solid var(--btn-border);
+  transition: .2s;
+  border-radius: 28px;
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--muted);
+  transition: .2s;
+  border-radius: 50%;
+}
+input:checked + .toggle-slider {
+  background-color: var(--primary);
+  border-color: #3e78c9;
+}
+input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+  background-color: white;
+}

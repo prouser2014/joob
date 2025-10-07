@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  />
+  <title>Lora radio</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- (необязательно) Capacitor/Cordova -->
+  <script src="capacitor.js"></script>
+
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: filesystem:;
+                 media-src * blob: data:;
+                 img-src * data: blob:;
+                 connect-src * blob: data:;">
+
+  <!-- Локальные стили для тостов (ширина как у контента) -->
+  <style>
+    .toast-wrap{
+      position:fixed;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%);
+      width: min(900px, calc(100vw - 28px));
+      display:flex; flex-direction:column; gap:10px;
+      z-index:2000; pointer-events:none;
+    }
+    @supports (padding: max(0px)) {
+      .toast-wrap{ bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+    }
+    .toast-item{
+      pointer-events:auto;
+      width:100%; max-width:100%;
+      background:var(--panel,#151925);
+      color:var(--text,#e8eaf2);
+      border:1px solid var(--btn-border,#2b3147);
+      border-radius:12px;
+      padding:10px 14px;
+      box-shadow:0 12px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+      font:14px/1.35 system-ui,Segoe UI,Arial;
+      opacity:0; transform:translateY(8px);
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    .toast-item.show{ opacity:1; transform:translateY(0); }
+    .toast-item.ok{ border-color:#1f9d57; box-shadow:0 12px 30px rgba(31,157,87,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+    .toast-item.err{ border-color:#b0362c; box-shadow:0 12px 30px rgba(176,54,44,.25), inset 0 1px 0 rgba(255,255,255,.05); }
+  </style>
+</head>
+<body>
+
+  <!-- Переключатель бокового меню -->
+  <input id="nav-toggle" class="nav-toggle" type="checkbox" hidden>
+
+  <!-- Радиокнопки вкладок -->
+  <input id="tab-ptt"      class="tab-toggle" name="tabs" type="radio" hidden checked>
+  <input id="tab-connect"  class="tab-toggle" name="tabs" type="radio" hidden>
+  <input id="tab-audio"    class="tab-toggle" name="tabs" type="radio" hidden>
+  <input id="tab-crypto"   class="tab-toggle" name="tabs" type="radio" hidden>
+  <input id="tab-journal"  class="tab-toggle" name="tabs" type="radio" hidden>
+
+  <!-- Боковое меню -->
+  <aside class="drawer" aria-hidden="true">
+    <div class="drawer-header"><div class="drawer-title">Lora radio</div></div>
+    <nav class="drawer-nav">
+      <label class="drawer-link" for="tab-ptt">Рация</label>
+      <label class="drawer-link" for="tab-connect">Подключение устройства</label>
+      <label class="drawer-link" for="tab-audio">Настройки аудио</label>
+      <label class="drawer-link" for="tab-crypto">Шифрование</label>
+      <label class="drawer-link" for="tab-journal">Журнал</label>
+    </nav>
+  </aside>
+  <label for="nav-toggle" class="backdrop" aria-hidden="true"></label>
+
+  <!-- Верхняя панель -->
+  <header class="bar">
+    <div class="bar-left">
+      <label for="nav-toggle" class="burger" aria-label="Открыть меню">
+        <span></span><span></span><span></span>
+      </label>
+      <div class="brand">Lora radio</div>
+    </div>
+  </header>
+
+  <!-- ГЛАВНЫЙ КОНТЕЙНЕР -->
+  <main id="app">
+
+    <!-- ===== Вкладка: Рация / PTT ===== -->
+    <section id="panel-ptt" class="tab-panel" role="tabpanel" aria-labelledby="tab-ptt">
+      <div class="circle-wrap">
+        <div id="state-circle" class="circle green" aria-label="PTT (нажмите и удерживайте)"></div>
+      </div>
+
+      <div class="circle-area">
+        <div class="vu">
+          <div class="vu-caption">Уровень приема с микрофона</div>
+          <div class="vu-track"><div id="vu-mic" class="vu-bar" style="width:0%"></div></div>
+        </div>
+        <div class="vu">
+          <div class="vu-caption">Уровень приема из эфира</div>
+          <div class="vu-track"><div id="vu-rx" class="vu-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Вкладка: Подключение ===== -->
+    <section id="panel-connect" class="tab-panel" role="tabpanel" aria-labelledby="tab-connect">
+      <h2 class="title">Подключение устройства</h2>
+
+      <div class="panel-row">
+        <button id="btn-connect" class="btn btn-connect danger">Подключить устройство</button>
+      </div>
+
+      <div class="panel-row">
+        <label class="lbl">Скорость порта:</label>
+        <select id="baud" class="input">
+          <option value="9600">9 600</option>
+          <option value="19200">19 200</option>
+          <option value="38400">38 400</option>
+          <option value="57600">57 600</option>
+          <option value="115200" selected>115 200</option>
+          <option value="230400">230 400</option>
+          <option value="460800">460 800</option>
+        </select>
+        <div id="uart-status" class="traffic-chip mono">Отключено</div>
+      </div>
+    </section>
+
+    <!-- ===== Вкладка: Настройки аудио ===== -->
+    <section id="panel-audio" class="tab-panel" role="tabpanel" aria-labelledby="tab-audio">
+      <h2 class="title">Настройки аудио</h2>
+
+      <!-- Кодек и буфер -->
+      <div class="panel-row tight">
+        <label class="lbl">Режим кодирования:</label>
+        <select id="codec" class="input">
+          <option value="c2chunk_3200">Codec2 — 3.2 кбит/с</option>
+          <option value="c2chunk_2400">Codec2 — 2.4 кбит/с</option>
+          <option value="c2chunk_1600">Codec2 — 1.6 кбит/с</option>
+          <option value="c2chunk_1400">Codec2 — 1.4 кбит/с</option>
+          <option value="c2chunk_1300" selected>Codec2 — 1.3 кбит/с</option>
+          <option value="c2chunk_1200">Codec2 — 1.2 кбит/с</option>
+          <option value="c2chunk_700C">Codec2 — 0.7 кбит/с (700C)</option>
+          <option value="c2chunk_700B">Codec2 — 0.7 кбит/с (700B)</option>
+          <option value="c2chunk_700">Codec2 — 0.7 кбит/с (700)</option>
+          <option value="c2chunk_450">Codec2 — 0.45 кбит/с (450)</option>
+        </select>
+      </div>
+
+      <div class="panel-row tight">
+        <label class="lbl">Буфер приёма, мс:</label>
+        <input id="rxBufferMs" class="input" type="number" value="160" min="60" max="500" step="20">
+      </div>
+
+      <!-- Громкости -->
+      <div class="panel-row tight">
+        <label class="lbl">Усиление микрофона:</label>
+        <input id="micGain" class="input" type="range" min="0" max="2" value="1" step="0.1">
+      </div>
+      <div class="panel-row tight">
+        <label class="lbl">Усиление динамика:</label>
+        <input id="rxGain" class="input" type="range" min="0" max="2" value="1" step="0.1">
+      </div>
+
+      <!-- Обработка -->
+      <div class="panel-row tight">
+        <label class="lbl">Шумоподавление передатчика:</label>
+        <label class="toggle-switch">
+          <input id="noiseSuppression" type="checkbox" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="panel-row tight">
+        <label class="lbl">Эхоподавление передатчика:</label>
+        <label class="toggle-switch">
+          <input id="echoCancellation" type="checkbox" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="panel-row tight">
+        <label class="lbl">Компрессор на приёме (RX):</label>
+        <label class="toggle-switch">
+          <input id="rxCompressor" type="checkbox">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- ===== Вкладка: Шифрование ===== -->
+    <section id="panel-crypto" class="tab-panel" role="tabpanel" aria-labelledby="tab-crypto">
+      <h2 class="title">Шифрование</h2>
+
+      <div class="panel-row tight">
+        <label class="lbl">Включить шифрование:</label>
+        <label class="toggle-switch">
+          <input id="encEnable" type="checkbox" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="panel-row tight">
+        <label class="lbl">Длина ключа:</label>
+        <select id="encKeyBits" class="input">
+          <option value="256" selected>AES-256</option>
+          <option value="128">AES-128</option>
+        </select>
+      </div>
+
+      <div class="panel-row tight">
+        <label class="lbl">Ключ шифрования:</label>
+        <input id="encSingleHex" class="input mono" type="text" placeholder="вставь 64 hex-символа для AES-256 или 32 для AES-128">
+      </div>
+
+      <!-- Кнопки: одна под одной, на всю ширину -->
+      <div class="panel-row">
+        <button id="encApply" class="btn btn-connect">Записать ключ</button>
+      </div>
+      <div class="panel-row">
+        <button id="encGen" class="btn btn-connect">Сгенерировать ключ</button>
+      </div>
+      <div class="panel-row">
+        <button id="encCopy" class="btn btn-connect">Скопировать ключ в буфер обмена</button>
+      </div>
+    </section>
+
+    <!-- ===== Вкладка: Журнал (одно поле) ===== -->
+    <section id="panel-journal" class="tab-panel" role="tabpanel" aria-labelledby="tab-journal">
+      <h2 class="title">Журнал</h2>
+
+      <div class="panel-row">
+        <textarea
+          id="log-all"
+          class="log"
+          spellcheck="false"
+          placeholder="Здесь будут строки журнала: RX/TX кадры, статусы, сообщения…"
+          style="min-height:220px"
+        ></textarea>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Контейнер для тостов -->
+  <div id="toast-wrap" class="toast-wrap" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Скрипты (порядок важен) -->
+  <script src="cordova.js"></script>
+  <script src="cordova_plugins.js"></script>
+
+  <script src="serial.js" defer></script>
+
+  <!-- WASM-обвязки Codec2 -->
+  <script src="build/c2enc.js"></script>
+  <script src="build/c2dec.js"></script>
+
+  <!-- Аудио-движок -->
+  <script src="audio.js"></script>
+
+  <!-- Криптомодуль -->
+  <script src="crypto-aes.js"></script>
+
+  <!-- Основная логика UI/транспорта -->
+  <script src="main.js" defer></script>
+
+  <!-- audio-processor.js грузится из AudioWorklet внутри audio.js -->
+</body>
+</html>
